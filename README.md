@@ -1,141 +1,94 @@
 # Wings Bucha — Крила Бучі
 
-Лендінг житлового комплексу "Wings Bucha" у Бучі.
+Лендінг житлового комплексу `Wings Bucha` у Бучі.
 
-## Технологічний стек
+## Стек
 
 - React 19 + TypeScript
-- TanStack Start / Router (file-based routing)
+- TanStack Start / Router
 - Tailwind CSS v4
 - Vite 7
-- Bun (як пакетний менеджер; альтернативно — npm/pnpm)
+- Cloudflare Vite plugin
 
-## Локальна розробка
+## Локальний запуск
 
-Встановити залежності та запустити dev-сервер:
+Рекомендований варіант через `npm`:
+
+```bash
+npm install
+npm run dev
+```
+
+Сайт відкриється на [http://localhost:5173](http://localhost:5173).
+
+Якщо у вас є Bun, можна так:
 
 ```bash
 bun install
 bun run dev
 ```
 
-Сайт відкриється на http://localhost:5173
-
-Якщо немає Bun — підійде `npm install && npm run dev` або `pnpm install && pnpm dev`.
-
-## Збірка для продакшну
+## Продакшн-збірка
 
 ```bash
-bun run build
+npm run build
 ```
 
-Після збірки в папці `.output/` будуть готові файли для деплою:
-- `.output/public/` — статичні асети (HTML, JS, CSS, зображення)
-- `.output/server/` — серверний бандл (для SSR)
+Після збірки створюються:
 
-## Деплой на сервер замовника
+- `dist/client/` — клієнтські асети
+- `dist/server/` — SSR-бандл
 
-Проєкт підтримує **три способи деплою** залежно від інфраструктури:
+## Деплой
 
-### Варіант 1. Статичний хостинг (nginx / Apache) — найпростіше
+Поточна конфігурація підготовлена під `Cloudflare Workers`.
 
-Підходить для звичайного VPS або shared-хостингу. Сайт працює як SPA.
+### Що вже готово
 
-1. Локально виконати `bun run build`.
-2. Завантажити вміст папки `.output/public/` у кореневу директорію сайту на сервері (наприклад, `/var/www/wings-bucha/`).
-3. Налаштувати nginx так, щоб усі невідомі шляхи віддавали `index.html` (для клієнтського роутингу):
+- є `wrangler.jsonc`
+- додано `wrangler` у devDependencies
+- додано готові команди для preview і deploy
+- `wrangler` налаштований на деплой з `dist/server/server.js` і `dist/client/`
+- збірка проєкту перевірена через `npm run build`
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/wings-bucha;
-    index index.html;
+### Перший деплой
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Кешування статики
-    location ~* \.(js|css|png|jpg|jpeg|gif|webp|svg|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-Для Apache аналогічно через `.htaccess`:
-
-```apache
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
-```
-
-### Варіант 2. Node.js-сервер (з SSR)
-
-Якщо на сервері встановлено Node.js 20+ і потрібен повноцінний серверний рендеринг:
-
-1. Завантажити весь проєкт на сервер.
-2. Виконати:
+1. Авторизуватись у Cloudflare:
 
 ```bash
-bun install --production   # або: npm ci
-bun run build
+npx wrangler login
 ```
 
-3. Запустити сервер (через PM2/systemd):
+2. За потреби змінити назву сервісу у [wrangler.jsonc](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/wrangler.jsonc).
+
+3. Викотити застосунок:
 
 ```bash
-node .output/server/index.mjs
+npm run cf:deploy
 ```
 
-За замовчуванням слухатиме порт 3000 — пропустити через nginx як reverse proxy.
-
-### Варіант 3. Docker
-
-Створити `Dockerfile`:
-
-```dockerfile
-FROM oven/bun:1 AS builder
-WORKDIR /app
-COPY . .
-RUN bun install --frozen-lockfile
-RUN bun run build
-
-FROM nginx:alpine
-COPY --from=builder /app/.output/public /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-```
-
-Зібрати та запустити:
+### Локальна перевірка Cloudflare-рантайму
 
 ```bash
-docker build -t wings-bucha .
-docker run -d -p 80:80 wings-bucha
+npm run cf:preview
 ```
 
-## Структура проєкту
+### Важливо
 
-- `src/routes/` — сторінки (file-based routing)
-  - `index.tsx` — головна
-  - `house.$id.tsx` — сторінка окремого будинку
-  - `compare.tsx` — порівняння будинків
-  - `__root.tsx` — кореневий лейаут і метатеги
-- `src/components/site/` — UI-компоненти лендингу
-- `src/components/ui/` — базові shadcn-компоненти
+- На зараз у проєкті немає обов'язкових env-змінних для деплою.
+- Якщо пізніше з'являться форми, CRM, аналітика або API-ключі, їх краще додавати через `wrangler secret put`.
+- Старі інструкції з `.output/` більше неактуальні для цього репозиторію: фактичний build-output зараз у `dist/`.
+- `wrangler` тут не збирає `src/server.ts` напряму: він деплоїть уже підготовлений build-артефакт після `npm run build`.
+
+## Структура
+
+- `src/routes/` — сторінки
+- `src/components/site/` — компоненти лендингу
+- `src/components/ui/` — базові UI-компоненти
 - `src/lib/houses.ts` — дані про будинки
-- `src/styles.css` — глобальні стилі і дизайн-токени
-- `public/` — статичні ресурси (зображення, og-image, favicon)
+- `src/styles.css` — глобальні стилі
+- `public/` — статичні ресурси
 
 ## Контент
 
-Дані про будинки — у файлі `src/lib/houses.ts`. Щоб додати/відредагувати будинок, правте цей масив; зображення додавайте в `public/` і посилайтесь на них шляхами `/назва-файлу.jpg`.
-
-## Підтримка
-
-Проєкт побудований на стандартному відкритому стеку (React + Vite + TanStack). Будь-який React-розробник зможе його підтримувати без спеціальних знань.
+Дані про будинки зберігаються у [src/lib/houses.ts](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/src/lib/houses.ts). Якщо треба змінити ціни, площі, назви або характеристики, це основний файл для редагування.
