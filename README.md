@@ -41,7 +41,30 @@ npm run build
 
 ## Деплой
 
-Поточна конфігурація підготовлена під `Cloudflare Workers`.
+Проєкт підготовлений у двох сценаріях:
+
+- звичайний сервер або VPS з `Node.js + nginx`
+- `Cloudflare Workers`
+
+Для передачі системному адміну дивіться [DEPLOY-HOSTING.md](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/DEPLOY-HOSTING.md).
+
+### Рекомендований варіант для сервера замовника
+
+Для звичайного VPS або хостингу з доступом до `Node.js` використовуйте:
+
+```bash
+npm ci
+npm run build
+npm run start
+```
+
+Готові серверні файли:
+
+- [deploy/node-server.mjs](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/deploy/node-server.mjs)
+- [deploy/nginx.conf](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/deploy/nginx.conf)
+- [deploy/wings-bucha.service](/Users/ihnatovvladgmail.com/Downloads/wings-bucha/deploy/wings-bucha.service)
+
+### Cloudflare як опція
 
 ### Що вже готово
 
